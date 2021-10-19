@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using ASPAppIdentity.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 
 namespace ASPAppIdentity.Controllers
 {
@@ -53,9 +54,18 @@ namespace ASPAppIdentity.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            var result = await _SignInManager.PasswordSignInAsync(model.Email, model.Password,model.RememberMe,false);
+            var result = await _SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, false);
             if (result.Succeeded)
             {
+                if (model.RememberMe)
+                {
+                    string key = "ck1";
+                    string value = model.Email;
+                    CookieOptions cookieOption = new CookieOptions();
+                    cookieOption.Expires = DateTime.Now.AddDays(2);
+                    Response.Cookies.Append(key, value, cookieOption);
+                }
+                HttpContext.Session.SetString("uname", model.Email);
                 return RedirectToAction("Dashboard");
             }
             else
@@ -66,10 +76,44 @@ namespace ASPAppIdentity.Controllers
         }
         public IActionResult Dashboard()
         {
+            var uname = HttpContext.Session.GetString("uname");
+            if (uname != null)  //Verify Session exists.
+            {
+                ViewBag.msg = "Welcome " + uname + " to the dashboard.......State maintained using session.";
+                
+            }
+            else if (Request.Cookies["ck1"] != null)    //Verify Cookie exists.
+            {
+                //If Session failed and cookie exists.
+                uname = Request.Cookies["ck1"].ToString();
+                HttpContext.Session.SetString("uname",uname); 
+                ViewBag.msg = "Welcome " + uname + " to the dashboard.......State maintained using cookies.";
+            }
+            else
+            {
+                ViewBag.msg = "Session Does not exist";
+            }
             return View();
         }
         public IActionResult Logout()
         {
+            
+            var uname = HttpContext.Session.GetString("uname");
+            if (uname != null)
+            {
+                string key = "ck1";
+                string value = uname;
+                HttpContext.Session.Clear();
+                ViewBag.msg = "Welcome to the dashboard";
+                
+                CookieOptions cookieOption = new CookieOptions();
+                cookieOption.Expires = DateTime.Now.AddDays(-1);
+                Response.Cookies.Append(key, value, cookieOption);
+            }
+            else
+            {
+                ViewBag.msg = "Landed on this page using this technique";
+            }
             return View();
         }
         

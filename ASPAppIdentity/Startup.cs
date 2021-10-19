@@ -33,6 +33,10 @@ namespace ASPAppIdentity
             services.AddDbContext<MyIdentityDBContext>(options => options.UseSqlServer(cs1));
             services.AddIdentity<IdentityUser, IdentityRole>().
                 AddEntityFrameworkStores<MyIdentityDBContext>();
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromSeconds(180);
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -53,6 +57,8 @@ namespace ASPAppIdentity
             app.UseAuthorization();
 
             app.UseAuthentication();
+
+            app.UseSession();
 
             app.UseEndpoints(endpoints =>
             {
